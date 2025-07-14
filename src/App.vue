@@ -302,21 +302,24 @@ onUnmounted(() => {
     
     <!-- Main App UI (hidden when orientation message is shown) -->
     <template v-else>
-      <!-- MIDI Status Indicator (outside container) -->
-      <div class="midi-status-external">
-        <span v-if="midiSupported" class="midi-connected">🎹 MIDI Ready</span>
-        <span v-else class="midi-disconnected">🎹 MIDI Not Available</span>
-      </div>
-      
       <div class="staff-container">
-        <!-- Note Naming Toggle -->
-        <div class="naming-toggle">
-          <label class="toggle-container">
-            <span>Letters</span>
-            <input type="checkbox" v-model="useSolfege" class="toggle-checkbox">
-            <span class="toggle-slider"></span>
-            <span>Solfège</span>
-          </label>
+        <!-- Top Controls Row -->
+        <div class="top-controls">
+          <!-- Note Naming Toggle -->
+          <div class="naming-toggle">
+            <label class="toggle-container">
+              <span>Letters</span>
+              <input type="checkbox" v-model="useSolfege" class="toggle-checkbox">
+              <span class="toggle-slider"></span>
+              <span>Solfège</span>
+            </label>
+          </div>
+          
+          <!-- MIDI Status Indicator -->
+          <div class="midi-status-internal">
+            <span v-if="midiSupported" class="midi-connected">🎹 MIDI Ready</span>
+            <span v-else class="midi-disconnected">🎹 MIDI Not Available</span>
+          </div>
         </div>
       
       <!-- Staff lines -->
@@ -543,21 +546,21 @@ onUnmounted(() => {
   color: #999;
 }
 
-.midi-status-external {
-  position: absolute;
-  top: 20px;
-  right: 20px;
-  font-size: 14px;
-  font-weight: bold;
-  background-color: rgba(255, 255, 255, 0.9);
-  padding: 8px 12px;
-  border-radius: 20px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+.top-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
 }
 
 .naming-toggle {
-  text-align: center;
-  margin-bottom: 15px;
+  flex: 0 0 auto;
+}
+
+.midi-status-internal {
+  font-size: 14px;
+  font-weight: bold;
+  flex: 0 0 auto;
 }
 
 .toggle-container {
