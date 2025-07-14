@@ -130,6 +130,28 @@ const toggleShowAllNotes = () => {
   }
 }
 
+// Fullscreen functionality
+const isFullscreen = ref(false)
+
+const toggleFullscreen = async () => {
+  try {
+    if (!document.fullscreenElement) {
+      await document.documentElement.requestFullscreen()
+      isFullscreen.value = true
+    } else {
+      await document.exitFullscreen()
+      isFullscreen.value = false
+    }
+  } catch (error) {
+    console.warn('Fullscreen not supported or failed:', error)
+  }
+}
+
+// Listen for fullscreen changes
+const handleFullscreenChange = () => {
+  isFullscreen.value = !!document.fullscreenElement
+}
+
 // MIDI note to letter mapping (expanded range C4 to F6)
 const midiNoteToLetter = {
   // C4 octave (middle C area)
@@ -271,6 +293,9 @@ onMounted(async () => {
   window.addEventListener('orientationchange', handleOrientationChange)
   window.addEventListener('resize', handleOrientationChange)
   
+  // Add fullscreen change listener
+  document.addEventListener('fullscreenchange', handleFullscreenChange)
+  
   await initializeMidi()
   displayNextNote()
 })
@@ -286,6 +311,9 @@ onUnmounted(() => {
   // Remove orientation change listeners
   window.removeEventListener('orientationchange', handleOrientationChange)
   window.removeEventListener('resize', handleOrientationChange)
+  
+  // Remove fullscreen change listener
+  document.removeEventListener('fullscreenchange', handleFullscreenChange)
 })
 </script>
 
@@ -396,6 +424,12 @@ onUnmounted(() => {
       <!-- Show All Notes Button -->
       <button class="show-all-button" @click="toggleShowAllNotes">
         {{ showAllNotes ? 'Hide notes' : 'Show notes' }}
+      </button>
+      
+      <!-- Fullscreen Button -->
+      <button class="fullscreen-button" @click="toggleFullscreen" :title="isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'">
+        <span v-if="isFullscreen">⤪</span>
+        <span v-else>⤢</span>
       </button>
       
       <!-- Note buttons -->
@@ -626,6 +660,33 @@ onUnmounted(() => {
 }
 
 .show-all-button:active {
+  background-color: rgba(0, 0, 0, 0.2);
+  transform: translateY(0);
+}
+
+.fullscreen-button {
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+  width: 40px;
+  height: 40px;
+  font-size: 18px;
+  background-color: transparent;
+  border: 2px solid #000;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fullscreen-button:hover {
+  background-color: rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
+}
+
+.fullscreen-button:active {
   background-color: rgba(0, 0, 0, 0.2);
   transform: translateY(0);
 }
