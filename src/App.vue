@@ -1,30 +1,16 @@
 <script setup>
 import { ref, onMounted, onUnmounted, watch } from 'vue'
-
-// Define musical notes with their positions on the staff (full treble clef range)
-const noteTypes = [
-  // Below the staff (with ledger lines)
-  { note: 'C', position: 90, octave: 4 },  // C4 - one ledger line below
-  { note: 'D', position: 85, octave: 4 },  // D4 - below the staff
-  { note: 'E', position: 80, octave: 4 },  // E4 - on the first line
-  { note: 'F', position: 75, octave: 4 },  // F4 - between first and second line
-  { note: 'G', position: 70, octave: 4 },  // G4 - on the second line
-  { note: 'A', position: 65, octave: 4 },  // A4 - between second and third line
-  { note: 'B', position: 60, octave: 4 },  // B4 - on the third line
-  // Middle octave on the staff
-  { note: 'C', position: 55, octave: 5 },  // C5 - between third and fourth line
-  { note: 'D', position: 50, octave: 5 },  // D5 - on the fourth line
-  { note: 'E', position: 45, octave: 5 },  // E5 - between fourth and fifth line
-  { note: 'F', position: 40, octave: 5 },  // F5 - on the fifth line
-  { note: 'G', position: 35, octave: 5 },  // G5 - above the staff
-  { note: 'A', position: 30, octave: 5 },  // A5 - above the staff
-  { note: 'B', position: 25, octave: 5 },  // B5 - above the staff
-  // High notes (with ledger lines above)
-  { note: 'C', position: 20, octave: 6 }   // C6 - one ledger line above
-]
-
-// X positions for notes from left to right
-const notePositions = [150, 230, 310, 390, 470, 550, 630, 710]
+import { 
+  NOTE_POSITIONS, 
+  TREBLE_NOTES, 
+  BASS_NOTES, 
+  MIDI_NOTE_TO_LETTER, 
+  VALID_NOTES,
+  getNotesByClef,
+  getDisplayName,
+  getButtonNames,
+  getLedgerLinePositions
+} from './constants/notes.js'
 
 // Array to hold displayed notes
 const displayedNotes = ref([])
@@ -60,21 +46,11 @@ const handleOrientationChange = () => {
   setTimeout(checkOrientation, 100)
 }
 
-// Reset game when clef changes
-const resetGameForClefChange = () => {
-  displayedNotes.value = []
-  currentPositionIndex.value = 0
-  currentExpectedNote.value = null
-  showAllNotes.value = false
-  allNotesWithLabels.value = []
-  displayNextNote()
-}
-
 // Current position index
 const currentPositionIndex = ref(0)
 
 // Maximum number of notes to display
-const maxNotes = notePositions.length
+const maxNotes = NOTE_POSITIONS.length
 
 // Current expected note (the one the user should guess)
 const currentExpectedNote = ref(null)
@@ -92,82 +68,29 @@ const useSolfege = ref(true)
 // Clef toggle (true = treble, false = bass)
 const useTrebleClef = ref(true)
 
-// Define musical notes with their positions on the staff for treble clef
-const trebleNoteTypes = [
-  // Below the staff (with ledger lines)
-  { note: 'C', position: 90, octave: 4 },  // C4 - one ledger line below
-  { note: 'D', position: 85, octave: 4 },  // D4 - below the staff
-  { note: 'E', position: 80, octave: 4 },  // E4 - on the first line
-  { note: 'F', position: 75, octave: 4 },  // F4 - between first and second line
-  { note: 'G', position: 70, octave: 4 },  // G4 - on the second line
-  { note: 'A', position: 65, octave: 4 },  // A4 - between second and third line
-  { note: 'B', position: 60, octave: 4 },  // B4 - on the third line
-  // Middle octave on the staff
-  { note: 'C', position: 55, octave: 5 },  // C5 - between third and fourth line
-  { note: 'D', position: 50, octave: 5 },  // D5 - on the fourth line
-  { note: 'E', position: 45, octave: 5 },  // E5 - between fourth and fifth line
-  { note: 'F', position: 40, octave: 5 },  // F5 - on the fifth line
-  { note: 'G', position: 35, octave: 5 },  // G5 - above the staff
-  { note: 'A', position: 30, octave: 5 },  // A5 - above the staff
-  { note: 'B', position: 25, octave: 5 },  // B5 - above the staff
-  // High notes (with ledger lines above)
-  { note: 'C', position: 20, octave: 6 }   // C6 - one ledger line above
-]
-
-// Define musical notes with their positions on the staff for bass clef
-const bassNoteTypes = [
-  // High notes (with ledger lines above) - starting from top
-  { note: 'C', position: 30, octave: 4 },  // C4 - above the staff (do - upper)
-  { note: 'B', position: 35, octave: 3 },  // B3 - above the staff (ti)
-  { note: 'A', position: 40, octave: 3 },  // A3 - on the fifth line (la)
-  { note: 'G', position: 45, octave: 3 },  // G3 - between fourth and fifth line (sol)
-  { note: 'F', position: 50, octave: 3 },  // F3 - on the fourth line (fa)
-  { note: 'E', position: 55, octave: 3 },  // E3 - between third and fourth line (mi)
-  { note: 'D', position: 60, octave: 3 },  // D3 - on the third line (re)
-  { note: 'C', position: 65, octave: 3 },  // C3 - between second and third line (do)
-  { note: 'B', position: 70, octave: 2 },  // B2 - on the second line (ti)
-  { note: 'A', position: 75, octave: 2 },  // A2 - between first and second line (la)
-  { note: 'G', position: 80, octave: 2 },  // G2 - on the first line (sol)
-  { note: 'F', position: 85, octave: 2 },  // F2 - below the staff (fa)
-  { note: 'E', position: 90, octave: 2 },  // E2 - below the staff (mi)
-  { note: 'D', position: 95, octave: 2 },  // D2 - below the staff (re)
-  // Low notes (with ledger lines below)
-  { note: 'C', position: 100, octave: 2 }  // C2 - one ledger line below (do, two octaves lower)
-]
-
 // Get current note types based on clef
 const getCurrentNoteTypes = () => {
-  return useTrebleClef.value ? trebleNoteTypes : bassNoteTypes
-}
-
-// Solfège mapping
-const noteToSolfege = {
-  'C': 'do',
-  'D': 're', 
-  'E': 'mi',
-  'F': 'fa',
-  'G': 'sol',
-  'A': 'la',
-  'B': 'ti'
-}
-
-// Get the display name for a note based on current naming system
-const getDisplayName = (note) => {
-  return useSolfege.value ? noteToSolfege[note] : note
+  return getNotesByClef(useTrebleClef.value ? 'treble' : 'bass')
 }
 
 // Get all display names for buttons
-const getButtonNames = () => {
-  const letters = ['C', 'D', 'E', 'F', 'G', 'A', 'B']
-  return letters.map(letter => ({
-    letter: letter,
-    display: getDisplayName(letter)
-  }))
+const getButtonNamesForCurrentSystem = () => {
+  return getButtonNames(useSolfege.value)
 }
 
 // Show all notes feature
 const showAllNotes = ref(false)
 const allNotesWithLabels = ref([])
+
+// Reset game when clef changes
+const resetGameForClefChange = () => {
+  displayedNotes.value = []
+  currentPositionIndex.value = 0
+  currentExpectedNote.value = null
+  showAllNotes.value = false
+  allNotesWithLabels.value = []
+  displayNextNote()
+}
 
 // Toggle show all notes
 const toggleShowAllNotes = () => {
@@ -183,11 +106,11 @@ const toggleShowAllNotes = () => {
     // First press - show all notes
     showAllNotes.value = true
     const currentNoteTypes = getCurrentNoteTypes()
-    allNotesWithLabels.value = currentNoteTypes.map((noteType, index) => ({
-      ...noteType,
+    allNotesWithLabels.value = currentNoteTypes.map((noteObj, index) => ({
+      ...noteObj,
       x: 120 + (index * 35), // Spread notes across the staff
       id: `all-${index}`,
-      displayName: getDisplayName(noteType.note)
+      displayName: getDisplayName(noteObj, useSolfege.value)
     }))
   }
 }
@@ -212,61 +135,6 @@ const toggleFullscreen = async () => {
 // Listen for fullscreen changes
 const handleFullscreenChange = () => {
   isFullscreen.value = !!document.fullscreenElement
-}
-
-// MIDI note to letter mapping (expanded range for both clefs)
-const midiNoteToLetter = {
-  // Bass clef range (C2 to C4) - including sharps/flats
-  36: 'C', // C2
-  37: 'C#',
-  38: 'D', // D2
-  39: 'D#',
-  40: 'E', // E2
-  41: 'F', // F2
-  42: 'F#',
-  43: 'G', // G2
-  44: 'G#',
-  45: 'A', // A2
-  46: 'A#',
-  47: 'B', // B2
-  48: 'C', // C3
-  49: 'C#',
-  50: 'D', // D3
-  51: 'D#',
-  52: 'E', // E3
-  53: 'F', // F3
-  54: 'F#',
-  55: 'G', // G3
-  56: 'G#',
-  57: 'A', // A3
-  58: 'A#',
-  59: 'B', // B3
-  60: 'C', // C4
-  // Treble clef range (C4 to C6) - including sharps/flats
-  61: 'C#',
-  62: 'D', // D4
-  63: 'D#',
-  64: 'E', // E4
-  65: 'F', // F4
-  66: 'F#',
-  67: 'G', // G4
-  68: 'G#',
-  69: 'A', // A4
-  70: 'A#',
-  71: 'B', // B4
-  72: 'C', // C5
-  73: 'C#',
-  74: 'D', // D5
-  75: 'D#',
-  76: 'E', // E5
-  77: 'F', // F5
-  78: 'F#',
-  79: 'G', // G5
-  80: 'G#',
-  81: 'A', // A5
-  82: 'A#',
-  83: 'B', // B5
-  84: 'C'  // C6
 }
 
 // Function to generate a random note
@@ -295,12 +163,12 @@ const displayNextNote = () => {
   }
   
   // Generate a new random note
-  const selectedNoteType = generateRandomNote()
+  const selectedNoteObj = generateRandomNote()
   
   // Create a new note at the current position
   const newNote = {
-    ...selectedNoteType,
-    x: notePositions[currentPositionIndex.value],
+    ...selectedNoteObj,
+    x: NOTE_POSITIONS[currentPositionIndex.value],
     id: Date.now() // unique id for the note
   }
   
@@ -317,16 +185,16 @@ const displayNextNote = () => {
 // Function to handle note guesses (from both buttons and MIDI)
 const handleNoteGuess = (guessedNote) => {
   console.log(`Note guess received: ${guessedNote}`)
-  console.log(`Expected note: ${currentExpectedNote.value?.note}`)
+  console.log(`Expected note: ${currentExpectedNote.value?.letterName}`)
   
-  if (currentExpectedNote.value && guessedNote === currentExpectedNote.value.note) {
+  if (currentExpectedNote.value && guessedNote === currentExpectedNote.value.letterName) {
     // Correct guess! Show positive feedback and display the next note
-    console.log(`✅ Correct! ${guessedNote} matches ${currentExpectedNote.value.note}`)
+    console.log(`✅ Correct! ${guessedNote} matches ${currentExpectedNote.value.letterName}`)
     showButtonFeedback(guessedNote, true)
     displayNextNote()
-  } else if (['C', 'D', 'E', 'F', 'G', 'A', 'B'].includes(guessedNote)) {
+  } else if (VALID_NOTES.includes(guessedNote)) {
     // Incorrect guess! Show negative feedback (only for valid notes)
-    console.log(`❌ Incorrect! ${guessedNote} does not match ${currentExpectedNote.value?.note}`)
+    console.log(`❌ Incorrect! ${guessedNote} does not match ${currentExpectedNote.value?.letterName}`)
     showButtonFeedback(guessedNote, false)
   }
 }
@@ -340,10 +208,10 @@ const handleMidiMessage = (message) => {
   
   // Only handle note on messages (144) with velocity > 0
   if (command === 144 && velocity > 0) {
-    const noteLetter = midiNoteToLetter[note]
+    const noteLetter = MIDI_NOTE_TO_LETTER[note]
     console.log(`MIDI Note ${note} mapped to letter: ${noteLetter}`)
     
-    if (noteLetter && ['C', 'D', 'E', 'F', 'G', 'A', 'B'].includes(noteLetter)) {
+    if (noteLetter && VALID_NOTES.includes(noteLetter)) {
       console.log(`Playing note: ${noteLetter}`)
       handleNoteGuess(noteLetter)
     } else {
@@ -485,30 +353,10 @@ onUnmounted(() => {
         
         <!-- Individual ledger lines for notes that need them -->
         <g v-for="note in displayedNotes" :key="`ledger-${note.id}`">
-          <!-- Ledger line for low C (position 90) -->
-          <line v-if="note.position === 90" 
+          <!-- Render ledger line if note needs one -->
+          <line v-if="note.needsLedgerLine && note.ledgerLinePosition" 
                 :x1="note.x - 12" :x2="note.x + 12" 
-                :y1="90" :y2="90" 
-                stroke="#000" stroke-width="1"/>
-          <!-- Ledger line for very low D (position 95) -->
-          <line v-if="note.position === 95" 
-                :x1="note.x - 12" :x2="note.x + 12" 
-                :y1="95" :y2="95" 
-                stroke="#000" stroke-width="1"/>
-          <!-- Ledger line for very low C (position 100) -->
-          <line v-if="note.position === 100" 
-                :x1="note.x - 12" :x2="note.x + 12" 
-                :y1="100" :y2="100" 
-                stroke="#000" stroke-width="1"/>
-          <!-- Ledger line for high A (position 30) -->
-          <line v-if="note.position === 30" 
-                :x1="note.x - 12" :x2="note.x + 12" 
-                :y1="30" :y2="30" 
-                stroke="#000" stroke-width="1"/>
-          <!-- Ledger line for high C (position 20) -->
-          <line v-if="note.position === 20" 
-                :x1="note.x - 12" :x2="note.x + 12" 
-                :y1="20" :y2="20" 
+                :y1="note.ledgerLinePosition" :y2="note.ledgerLinePosition" 
                 stroke="#000" stroke-width="1"/>
         </g>
         
@@ -525,25 +373,9 @@ onUnmounted(() => {
         <!-- All notes display (when showing all notes) -->
         <g v-if="showAllNotes" v-for="note in allNotesWithLabels" :key="note.id">
           <!-- Individual ledger lines for all notes -->
-          <line v-if="note.position === 90" 
+          <line v-if="note.needsLedgerLine && note.ledgerLinePosition" 
                 :x1="note.x - 12" :x2="note.x + 12" 
-                :y1="90" :y2="90" 
-                stroke="#000" stroke-width="1"/>
-          <line v-if="note.position === 95" 
-                :x1="note.x - 12" :x2="note.x + 12" 
-                :y1="95" :y2="95" 
-                stroke="#000" stroke-width="1"/>
-          <line v-if="note.position === 100" 
-                :x1="note.x - 12" :x2="note.x + 12" 
-                :y1="100" :y2="100" 
-                stroke="#000" stroke-width="1"/>
-          <line v-if="note.position === 30" 
-                :x1="note.x - 12" :x2="note.x + 12" 
-                :y1="30" :y2="30" 
-                stroke="#000" stroke-width="1"/>
-          <line v-if="note.position === 20" 
-                :x1="note.x - 12" :x2="note.x + 12" 
-                :y1="20" :y2="20" 
+                :y1="note.ledgerLinePosition" :y2="note.ledgerLinePosition" 
                 stroke="#000" stroke-width="1"/>
           
           <!-- Note head -->
@@ -574,7 +406,7 @@ onUnmounted(() => {
       
       <!-- Note buttons -->
       <div class="note-buttons">
-        <button v-for="noteData in getButtonNames()" 
+        <button v-for="noteData in getButtonNamesForCurrentSystem()" 
                 :key="noteData.letter" 
                 :class="[
                   'note-button',
