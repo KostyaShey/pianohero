@@ -137,6 +137,64 @@ const handleFullscreenChange = () => {
   isFullscreen.value = !!document.fullscreenElement
 }
 
+// Wake Lock functionality to prevent screen from turning off
+const isWakeLockActive = ref(false)
+const wakeLock = ref(null)
+const isWakeLockSupported = ref(false)
+
+// Check if Wake Lock API is supported
+const checkWakeLockSupport = () => {
+  isWakeLockSupported.value = 'wakeLock' in navigator
+}
+
+const toggleWakeLock = async () => {
+  if (!isWakeLockSupported.value) {
+    console.warn('Wake Lock API not supported')
+    return
+  }
+
+  try {
+    if (!isWakeLockActive.value) {
+      // Request wake lock
+      wakeLock.value = await navigator.wakeLock.request('screen')
+      isWakeLockActive.value = true
+      console.log('Wake lock activated')
+      
+      // Listen for wake lock release
+      wakeLock.value.addEventListener('release', () => {
+        console.log('Wake lock released')
+        isWakeLockActive.value = false
+        wakeLock.value = null
+      })
+    } else {
+      // Release wake lock
+      if (wakeLock.value) {
+        await wakeLock.value.release()
+        wakeLock.value = null
+        isWakeLockActive.value = false
+        console.log('Wake lock manually released')
+      }
+    }
+  } catch (error) {
+    console.warn('Wake lock failed:', error)
+    isWakeLockActive.value = false
+    wakeLock.value = null
+  }
+}
+
+// Handle visibility change to re-request wake lock when page becomes visible
+const handleVisibilityChange = async () => {
+  if (document.visibilityState === 'visible' && isWakeLockActive.value && !wakeLock.value) {
+    try {
+      wakeLock.value = await navigator.wakeLock.request('screen')
+      console.log('Wake lock re-activated after visibility change')
+    } catch (error) {
+      console.warn('Failed to re-activate wake lock:', error)
+      isWakeLockActive.value = false
+    }
+  }
+}
+
 // Function to generate a random note
 const generateRandomNote = () => {
   const currentNoteTypes = getCurrentNoteTypes()
@@ -262,12 +320,18 @@ onMounted(async () => {
   isMobileOrTablet.value = detectMobileOrTablet()
   checkOrientation()
   
+  // Check wake lock support
+  checkWakeLockSupport()
+  
   // Add orientation change listeners
   window.addEventListener('orientationchange', handleOrientationChange)
   window.addEventListener('resize', handleOrientationChange)
   
   // Add fullscreen change listener
   document.addEventListener('fullscreenchange', handleFullscreenChange)
+  
+  // Add visibility change listener for wake lock
+  document.addEventListener('visibilitychange', handleVisibilityChange)
   
   await initializeMidi()
   displayNextNote()
@@ -286,12 +350,22 @@ onUnmounted(() => {
     }
   }
   
+  // Release wake lock if active
+  if (wakeLock.value) {
+    wakeLock.value.release()
+    wakeLock.value = null
+    isWakeLockActive.value = false
+  }
+  
   // Remove orientation change listeners
   window.removeEventListener('orientationchange', handleOrientationChange)
   window.removeEventListener('resize', handleOrientationChange)
   
   // Remove fullscreen change listener
   document.removeEventListener('fullscreenchange', handleFullscreenChange)
+  
+  // Remove visibility change listener
+  document.removeEventListener('visibilitychange', handleVisibilityChange)
 })
 </script>
 
@@ -402,6 +476,16 @@ onUnmounted(() => {
       <button class="fullscreen-button" @click="toggleFullscreen" :title="isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'">
         <span v-if="isFullscreen">⤪</span>
         <span v-else>⤢</span>
+      </button>
+      
+      <!-- Wake Lock Button -->
+      <button v-if="isWakeLockSupported" 
+              class="wake-lock-button" 
+              @click="toggleWakeLock" 
+              :title="isWakeLockActive ? 'Allow screen to sleep' : 'Keep screen awake'"
+              :class="{ 'active': isWakeLockActive }">
+        <span v-if="isWakeLockActive">🔒</span>
+        <span v-else>🔓</span>
       </button>
       
       <!-- Note buttons -->
@@ -663,5 +747,43 @@ onUnmounted(() => {
 .fullscreen-button:active {
   background-color: rgba(0, 0, 0, 0.2);
   transform: translateY(0);
+}
+
+.wake-lock-button {
+  position: absolute;
+  bottom: 20px;
+  left: 70px;
+  width: 40px;
+  height: 40px;
+  font-size: 18px;
+  background-color: transparent;
+  border: 2px solid #000;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.wake-lock-button:hover {
+  background-color: rgba(0, 0, 0, 0.1);
+  transform: translateY(-1px);
+}
+
+.wake-lock-button:active {
+  background-color: rgba(0, 0, 0, 0.2);
+  transform: translateY(0);
+}
+
+.wake-lock-button.active {
+  background-color: #4CAF50;
+  border-color: #4CAF50;
+  color: white;
+}
+
+.wake-lock-button.active:hover {
+  background-color: #45a049;
+  border-color: #45a049;
 }
 </style>
