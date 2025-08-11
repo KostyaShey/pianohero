@@ -7,7 +7,10 @@
           stroke="#000" stroke-width="1"/>
     
     <!-- Clef symbol -->
-    <text x="60" y="70" font-family="serif" font-size="50" fill="#000">
+    <text :x="clefPosition.x" :y="clefPosition.y" 
+          font-family="serif" 
+          :font-size="clefPosition.fontSize" 
+          fill="#000">
       {{ useTrebleClef ? '𝄞' : '𝄢' }}
     </text>
     
@@ -45,10 +48,11 @@
 </template>
 
 <script setup>
+import { computed } from 'vue'
 import Note from './Note.vue'
 import LedgerLine from './LedgerLine.vue'
 
-defineProps({
+const props = defineProps({
   useTrebleClef: {
     type: Boolean,
     required: true
@@ -64,7 +68,29 @@ defineProps({
   allNotesWithLabels: {
     type: Array,
     required: true
+  },
+  // Clef positioning options
+  trebleClefPosition: {
+    type: Object,
+    default: () => ({
+      x: 60,
+      y: 90,
+      fontSize: 70
+    })
+  },
+  bassClefPosition: {
+    type: Object,
+    default: () => ({
+      x: 60,
+      y: 65,
+      fontSize: 45
+    })
   }
+})
+
+// Computed property to get the current clef position
+const clefPosition = computed(() => {
+  return props.useTrebleClef ? props.trebleClefPosition : props.bassClefPosition
 })
 </script>
 

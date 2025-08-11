@@ -19,6 +19,8 @@
           :displayed-notes="displayedNotes"
           :show-all-notes="showAllNotes"
           :all-notes-with-labels="allNotesWithLabels"
+          :treble-clef-position="trebleClefPosition"
+          :bass-clef-position="bassClefPosition"
         />
         
         <!-- Show All Notes Button -->
@@ -52,7 +54,7 @@
 </template>
 
 <script setup>
-import { onMounted } from 'vue'
+import { onMounted, ref } from 'vue'
 
 // Components
 import OrientationMessage from './components/OrientationMessage.vue'
@@ -94,6 +96,19 @@ const { isFullscreen, toggleFullscreen } = useFullscreen()
 
 // Wake Lock support
 const { isWakeLockActive, isWakeLockSupported, toggleWakeLock } = useWakeLock()
+
+// Clef positioning options - easily adjustable
+const trebleClefPosition = ref({
+  x: 55,      // Horizontal position
+  y: 80,      // Vertical position  
+  fontSize: 60 // Font size
+})
+
+const bassClefPosition = ref({
+  x: 55,      // Horizontal position
+  y: 91,      // Vertical position (slightly higher than treble)
+  fontSize: 70 // Font size (slightly smaller than treble)
+})
 
 // Initialize the game
 onMounted(() => {
