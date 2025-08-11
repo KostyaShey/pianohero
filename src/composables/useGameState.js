@@ -1,5 +1,11 @@
 import { ref, computed, watch } from 'vue'
-import { TREBLE_NOTES, BASS_NOTES, NOTE_POSITIONS, NOTE_TO_SOLFEGE, VALID_NOTES } from '../constants/notes.js'
+import { 
+  NOTE_POSITIONS, 
+  VALID_NOTES,
+  getNotesByClef,
+  getDisplayName,
+  getButtonNames
+} from '../constants/notes.js'
 
 export function useGameState() {
   // State
@@ -17,7 +23,7 @@ export function useGameState() {
   
   // Computed
   const currentNoteTypes = computed(() => {
-    return useTrebleClef.value ? TREBLE_NOTES : BASS_NOTES
+    return getNotesByClef(useTrebleClef.value ? 'treble' : 'bass')
   })
   
   // Methods
@@ -54,10 +60,15 @@ export function useGameState() {
   }
   
   const handleNoteGuess = (guessedNote) => {
-    if (currentExpectedNote.value && guessedNote === currentExpectedNote.value.note) {
+    console.log(`Note guess received: ${guessedNote}`)
+    console.log(`Expected note: ${currentExpectedNote.value?.letterName}`)
+    
+    if (currentExpectedNote.value && guessedNote === currentExpectedNote.value.letterName) {
+      console.log(`✅ Correct! ${guessedNote} matches ${currentExpectedNote.value.letterName}`)
       showButtonFeedback(guessedNote, true)
       displayNextNote()
     } else if (VALID_NOTES.includes(guessedNote)) {
+      console.log(`❌ Incorrect! ${guessedNote} does not match ${currentExpectedNote.value?.letterName}`)
       showButtonFeedback(guessedNote, false)
     }
   }
@@ -73,15 +84,22 @@ export function useGameState() {
   
   const toggleShowAllNotes = () => {
     if (showAllNotes.value) {
-      resetGame()
+      // Second press - reset the game
+      showAllNotes.value = false
+      allNotesWithLabels.value = []
+      displayedNotes.value = []
+      currentPositionIndex.value = 0
+      currentExpectedNote.value = null
+      displayNextNote()
     } else {
+      // First press - show all notes
       showAllNotes.value = true
       const noteTypes = currentNoteTypes.value
-      allNotesWithLabels.value = noteTypes.map((noteType, index) => ({
-        ...noteType,
-        x: 120 + (index * 35),
+      allNotesWithLabels.value = noteTypes.map((noteObj, index) => ({
+        ...noteObj,
+        x: 120 + (index * 35), // Spread notes across the staff
         id: `all-${index}`,
-        displayName: useSolfege.value ? NOTE_TO_SOLFEGE[noteType.note] : noteType.note
+        displayName: getDisplayName(noteObj, useSolfege.value)
       }))
     }
   }

@@ -9,7 +9,7 @@
                 'incorrect-feedback': buttonFeedback[noteData.letter] === 'incorrect'
               }
             ]"
-            @click="$emit('noteGuess', noteData.letter)">
+            @click="$emit('note-guess', noteData.letter)">
       {{ noteData.display }}
     </button>
   </div>
@@ -17,7 +17,7 @@
 
 <script setup>
 import { computed } from 'vue'
-import { useNoteDisplay } from '../composables/useNoteDisplay.js'
+import { getButtonNames } from '../../constants/notes.js'
 
 const props = defineProps({
   useSolfege: {
@@ -30,11 +30,9 @@ const props = defineProps({
   }
 })
 
-defineEmits(['noteGuess'])
+defineEmits(['note-guess'])
 
-const { getButtonNames } = useNoteDisplay(computed(() => props.useSolfege))
-
-const buttonNames = computed(() => getButtonNames())
+const buttonNames = computed(() => getButtonNames(props.useSolfege))
 </script>
 
 <style scoped>
