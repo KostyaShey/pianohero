@@ -7,7 +7,7 @@
           stroke="#000" stroke-width="1"/>
     
     <!-- Clef symbol -->
-    <text x="60" y="65" font-family="serif" font-size="40" fill="#000">
+    <text x="60" y="70" font-family="serif" font-size="50" fill="#000">
       {{ useTrebleClef ? '𝄞' : '𝄢' }}
     </text>
     
